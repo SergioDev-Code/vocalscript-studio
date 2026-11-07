@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocalScript Studio | Transcriptor de Voz y Grabador en Tiempo Real</title>
+    <meta name="description" content="Transcripción de voz a texto en tiempo real impulsada por Edge Speech API con grabación y descarga de audio y texto.">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-background">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+        <div class="grid-overlay"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-waveform"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>VocalScript <span class="badge-tag">STUDIO</span></h1>
+                    <p>Transcripción en Tiempo Real & Grabador de Audio Edge API</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="language-selector-wrapper">
+                    <i class="fa-solid fa-globe"></i>
+                    <select id="languageSelect" class="custom-select" title="Seleccionar Idioma">
+                        <option value="es-ES" selected>Español (España)</option>
+                        <option value="es-MX">Español (México)</option>
+                        <option value="es-AR">Español (Argentina)</option>
+                        <option value="es-CO">Español (Colombia)</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="fr-FR">Français</option>
+                        <option value="de-DE">Deutsch</option>
+                        <option value="it-IT">Italiano</option>
+                        <option value="pt-BR">Português (Brasil)</option>
+                    </select>
+                </div>
+                <div class="status-pill" id="statusBadge">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Listo para grabar</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Visualizer Banner -->
+        <section class="visualizer-card glass-panel">
+            <div class="visualizer-header">
+                <div class="visualizer-title">
+                    <i class="fa-solid fa-chart-simple"></i> Espectro de Voz en Vivo
+                </div>
+                <div class="timer-display" id="timerDisplay">00:00:00</div>
+            </div>
+            <div class="canvas-container">
+                <canvas id="audioVisualizer"></canvas>
+                <div class="visualizer-placeholder" id="visualizerPlaceholder">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                    <span>Presiona <strong>Iniciar Grabación</strong> para comenzar la transcripción y captura de audio</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls Toolbar -->
+        <section class="controls-toolbar glass-panel">
+            <div class="control-buttons">
+                <button id="btnRecord" class="btn btn-primary btn-record">
+                    <i class="fa-solid fa-microphone"></i>
+                    <span>Iniciar Grabación</span>
+                </button>
+                <button id="btnPause" class="btn btn-secondary" disabled>
+                    <i class="fa-solid fa-pause"></i>
+                    <span>Pausar</span>
+                </button>
+                <button id="btnStop" class="btn btn-danger" disabled>
+                    <i class="fa-solid fa-square"></i>
+                    <span>Detener</span>
+                </button>
+                <button id="btnClear" class="btn btn-ghost" title="Limpiar todo">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Limpiar</span>
+                </button>
+            </div>
+
+            <!-- Live Stats -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">Palabras</span>
+                    <span class="stat-value" id="statWords">0</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-label">Caracteres</span>
+                    <span class="stat-value" id="statChars">0</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-label">Velocidad</span>
+                    <span class="stat-value" id="statWpm">0 <small>PPM</small></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace (2 Columns) -->
+        <main class="workspace-grid">
+            <!-- Left Column: Transcript Studio -->
+            <section class="transcript-section glass-panel">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-align-left"></i> Transcripción en Vivo</h2>
+                    <div class="transcript-actions">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar en texto...">
+                        </div>
+                        <button id="btnCopyText" class="btn btn-small btn-ghost" title="Copiar texto">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                        <div class="view-toggle">
+                            <button id="btnViewText" class="btn-toggle active" title="Modo Texto Continuo">Texto</button>
+                            <button id="btnViewTimeline" class="btn-toggle" title="Modo Marcas de Tiempo">Tiempo</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Interim Text Indicator -->
+                <div class="interim-banner hidden" id="interimBanner">
+                    <i class="fa-solid fa-ear-listen fa-pulse"></i>
+                    <span id="interimText">Escuchando...</span>
+                </div>
+
+                <!-- Textarea Editor View -->
+                <div id="textViewContainer" class="editor-container">
+                    <textarea id="transcriptTextarea" placeholder="La transcripción de tu voz aparecerá aquí automáticamente mientras hablas..." spellcheck="true"></textarea>
+                </div>
+
+                <!-- Timeline View Container (Hidden by default) -->
+                <div id="timelineViewContainer" class="timeline-container hidden">
+                    <div class="timeline-empty" id="timelineEmpty">
+                        <i class="fa-solid fa-clock"></i>
+                        <p>Las marcas de tiempo de las oraciones aparecerán aquí durante la grabación.</p>
+                    </div>
+                    <div id="timelineList" class="timeline-list"></div>
+                </div>
+            </section>
+
+            <!-- Right Column: Audio & Download Center -->
+            <aside class="sidebar-section">
+                <!-- Audio Preview Card -->
+                <div class="glass-panel audio-player-card">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-circle-play"></i> Audio Grabado</h3>
+                        <span class="badge-mini" id="audioFormatBadge">WEBM / WAV</span>
+                    </div>
+                    <div class="audio-player-wrapper">
+                        <audio id="audioPlayback" controls class="custom-audio-player"></audio>
+                        <div class="audio-placeholder" id="audioPlaceholder">
+                            <i class="fa-solid fa-file-audio"></i>
+                            <span>El archivo de audio estará listo al detener la grabación</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Hub Card -->
+                <div class="glass-panel download-hub-card">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-download"></i> Centro de Descargas</h3>
+                    </div>
+                    
+                    <div class="download-group">
+                        <label class="group-label"><i class="fa-solid fa-music"></i> Descargar Audio</label>
+                        <div class="download-buttons">
+                            <button id="btnDownloadAudioWebm" class="btn btn-action" disabled>
+                                <i class="fa-solid fa-file-audio"></i> Audio WebM
+                            </button>
+                            <button id="btnDownloadAudioWav" class="btn btn-action" disabled>
+                                <i class="fa-solid fa-compact-disc"></i> Audio WAV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="download-group">
+                        <label class="group-label"><i class="fa-solid fa-file-lines"></i> Descargar Texto & Transcripción</label>
+                        <div class="download-buttons vertical">
+                            <button id="btnDownloadTxt" class="btn btn-action" disabled>
+                                <i class="fa-solid fa-file-code"></i> Texto Plano (.TXT)
+                            </button>
+                            <button id="btnDownloadMd" class="btn btn-action" disabled>
+                                <i class="fa-solid fa-file-word"></i> Markdown con Tiempos (.MD)
+                            </button>
+                            <button id="btnDownloadJson" class="btn btn-action" disabled>
+                                <i class="fa-solid fa-brackets-curly"></i> Datos JSON (.JSON)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Browser Info Card -->
+                <div class="glass-panel info-card">
+                    <div class="info-icon">
+                        <i class="fa-brands fa-edge"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>Edge & Chromium Engine</h4>
+                        <p>Utiliza la API nativa de voz de Microsoft Edge con alta precisión y procesamiento local en tiempo real.</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>VocalScript Studio &copy; 2026 — Desarrollado con HTML5, Web Speech API & MediaRecorder</p>
+        </footer>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toastNotification" class="toast hidden">
+        <i class="toast-icon fa-solid fa-circle-check"></i>
+        <span id="toastMessage">Acción realizada con éxito</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
